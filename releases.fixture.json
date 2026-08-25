@@ -1,0 +1,47 @@
+{
+  "$comment": "Dev fixture mimicking `reposell build` evaluation output. Production render context is produced by the CLI from reposell.yml + verified Stripe Payment Links — never edited by hand. Each release carries license offers; every offer has its own verified Stripe link (recurring offers point at Stripe subscription prices).",
+  "repositorySlug": "EnzoVezzaro/my-project",
+  "repositoryUrl": "https://github.com/EnzoVezzaro/my-project",
+  "releases": [
+    {
+      "version": "v1.2.0",
+      "status": "available",
+      "offers": [
+        {
+          "scheme": "standard",
+          "name": "Standard License",
+          "billing": "one-time",
+          "price": 29,
+          "currency": "USD",
+          "status": "available",
+          "paymentLink": "https://buy.stripe.com/test_standard"
+        },
+        {
+          "scheme": "team",
+          "name": "Team License",
+          "billing": "one-time",
+          "seats": 10,
+          "price": 99,
+          "currency": "USD",
+          "status": "available",
+          "paymentLink": "https://buy.stripe.com/test_team"
+        },
+        {
+          "scheme": "pro-monthly",
+          "name": "Pro Subscription",
+          "billing": "recurring",
+          "interval": "month",
+          "price": 9,
+          "currency": "USD",
+          "status": "available",
+          "paymentLink": "https://buy.stripe.com/test_pro_monthly"
+        }
+      ]
+    },
+    {
+      "version": "v1.1.0",
+      "status": "blocked",
+      "offers": []
+    }
+  ]
+}

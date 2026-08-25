@@ -1,0 +1,101 @@
+{
+  "schema": "reposell-storefront",
+  "version": 1,
+  "product": {
+    "name": "My Project",
+    "description": "Buy directly from the source repository."
+  },
+  "theme": {
+    "colors": {
+      "background": "#0b0c10",
+      "surface": "#14161d",
+      "ink": "#e8eaf0",
+      "muted": "#9aa1b2",
+      "accent": "#f5d90a",
+      "accentInk": "#111111",
+      "line": "#262a35"
+    },
+    "fonts": {
+      "heading": "Syne, sans-serif",
+      "body": "Outfit, sans-serif",
+      "mono": "\"Geist Mono\", monospace"
+    },
+    "radiusCard": "14px",
+    "radiusButton": "10px",
+    "maxWidth": "920px"
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "type": "hero",
+      "title": "My Project",
+      "eyebrow": "Direct sale",
+      "subtitle": "One-time purchase · instant fork delivery · your repo, your keys.",
+      "ctas": [
+        {
+          "label": "Buy latest release",
+          "action": {
+            "kind": "purchase"
+          }
+        },
+        {
+          "label": "View repository",
+          "action": {
+            "kind": "fork"
+          },
+          "variant": "ghost"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "type": "features",
+      "title": "What you get",
+      "items": [
+        {
+          "title": "Source access",
+          "body": "Fork the exact tagged release you purchased.",
+          "icon": "◆"
+        },
+        {
+          "title": "Per-release licensing",
+          "body": "Every release is an immutable commercial record.",
+          "icon": "◇"
+        },
+        {
+          "title": "Verified payments",
+          "body": "Stripe Payment Links validated against manifest pricing.",
+          "icon": "◈"
+        }
+      ]
+    },
+    {
+      "id": "releases",
+      "type": "releases",
+      "title": "Releases",
+      "subtitle": "Each release carries its own price and verified payment link.",
+      "emptyMessage": "No releases are currently available for purchase."
+    },
+    {
+      "id": "faq",
+      "type": "faq",
+      "title": "Questions",
+      "items": [
+        {
+          "question": "How is it delivered?",
+          "answer": "Instantly — you fork the signed release from the source repository."
+        },
+        {
+          "question": "What about updates?",
+          "answer": "Each release is a separate purchase; new releases appear here as they publish."
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "type": "footer",
+      "text": "Powered by RepoSell — sell software from your own repository.",
+      "links": []
+    }
+  ]
+}
