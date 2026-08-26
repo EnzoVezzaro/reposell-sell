@@ -1,0 +1,39 @@
+name: deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Vue app
+        run: npm run build:vue
+
+      - name: Build TypeScript
+        run: npm run build:ts
+
+      - name: Publish to npm (skip if already published)
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view @reposell/sell@$PKG_VERSION version 2>/dev/null; then
+            echo "Version $PKG_VERSION already published — skipping"
+          else
+            npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
