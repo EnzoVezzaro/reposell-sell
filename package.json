@@ -1,7 +1,7 @@
 {
   "name": "@reposell/sell",
-  "version": "0.1.0",
-  "description": "Canonical sell page template for RepoSell — HTML, CSS, JS, and storefront schema",
+  "version": "0.2.0",
+  "description": "Vue sell page template for RepoSell — builds to a single self-contained HTML",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,17 +10,21 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./template": "./dist-sell/index.html",
     "./styles.css": "./styles.css",
     "./scripts.js": "./scripts.js"
   },
   "files": [
     "dist",
+    "dist-sell",
     "styles.css",
     "scripts.js",
     "storefront.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build:vue": "vite build",
+    "build:ts": "tsc",
+    "build": "npm run build:vue && npm run build:ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -37,7 +41,12 @@
   "engines": {
     "node": ">=18"
   },
+  "dependencies": {
+    "vue": "^3.5.0"
+  },
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "@vitejs/plugin-vue": "^5.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^6.0.0"
   }
 }
