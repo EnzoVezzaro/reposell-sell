@@ -1,0 +1,6 @@
+src/
+tsconfig.json
+.reposell/
+.github/
+releases.fixture.json
+.git/

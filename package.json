@@ -1,0 +1,43 @@
+{
+  "name": "@reposell/sell",
+  "version": "0.1.0",
+  "description": "Canonical sell page template for RepoSell — HTML, CSS, JS, and storefront schema",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles.css": "./styles.css",
+    "./scripts.js": "./scripts.js"
+  },
+  "files": [
+    "dist",
+    "styles.css",
+    "scripts.js",
+    "storefront.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "reposell",
+    "sell-page",
+    "storefront",
+    "template"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EnzoVezzaro/reposell-sell.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
