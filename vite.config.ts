@@ -16,14 +16,29 @@ function inlinePlugin() {
       const cssFile = files.find(f => f.endsWith('.css'))
       const jsFile = files.find(f => f.endsWith('.js'))
 
+      let inlinedJs = ''
+
       if (cssFile) {
         const css = readFileSync(resolve(assetsDir, cssFile), 'utf-8')
         html = html.replace(/<link[^>]*href="[^"]*\.css"[^>]*>/, `<style>${css}</style>`)
       }
       if (jsFile) {
         const js = readFileSync(resolve(assetsDir, jsFile), 'utf-8')
-        html = html.replace(/<script[^>]*src="[^"]*\.js"[^>]*><\/script>/, `<script>${js}</script>`)
+        inlinedJs = `<script>${js}</script>`
+        // Remove the module script tag (Vite may put it in <head>)
+        html = html.replace(/<script[^>]*type="module"[^>]*src="[^"]*"[^>]*><\/script>/, '')
       }
+
+      // Remove any inline <script> tags that Vite may have hoisted to <head>
+      // (they contain the inlined JS but in the wrong position)
+      html = html.replace(/<head>([\s\S]*?)<\/head>/, (_match, headContent) => {
+        // Keep only non-script content in <head>
+        const cleaned = headContent.replace(/<script>[\s\S]*?<\/script>/, '')
+        return `<head>${cleaned}</head>`
+      })
+
+      // Insert the script at the end of <body>, right before </body>
+      html = html.replace('</body>', `${inlinedJs}\n</body>`)
 
       writeFileSync(resolve(distDir, 'index.html'), html)
       console.log('✓ Inlined CSS and JS into single HTML file')
