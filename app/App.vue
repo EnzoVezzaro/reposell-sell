@@ -88,8 +88,7 @@
           <div v-if="release.licenseType" class="rs-license">
             <span class="rs-license-badge">License</span>
             <span class="rs-license-name">{{ release.licenseName || release.licenseType }}</span>
-            <a v-if="release.licenseUrl" :href="release.licenseUrl" target="_blank" rel="noopener" class="rs-license-link">View terms ↗</a>
-            <span v-else class="rs-license-link">See terms below</span>
+            <span class="rs-license-link">{{ release.licenseName || release.licenseType }}</span>
           </div>
 
           <div class="rs-offers">
@@ -205,7 +204,7 @@ export default {
         const res = await this.proxyFetch('https://github.com/login/device/code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'read:user user:email' }),
+          body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' }),
         })
         const data = await res.json()
         if (data.error) {
