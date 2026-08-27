@@ -37,8 +37,10 @@ function inlinePlugin() {
         return `<head>${cleaned}</head>`
       })
 
-      // Insert the script at the end of <body>, right before </body>
-      html = html.replace('</body>', `${inlinedJs}\n</body>`)
+      // Insert the script at the end of <body>, right before the LAST </body>
+      // (the JS contains '</body>' as a string literal, so we must use lastIndexOf)
+      const lastBodyClose = html.lastIndexOf('</body>')
+      html = html.substring(0, lastBodyClose) + inlinedJs + '\n' + html.substring(lastBodyClose)
 
       writeFileSync(resolve(distDir, 'index.html'), html)
       console.log('✓ Inlined CSS and JS into single HTML file')
