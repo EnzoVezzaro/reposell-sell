@@ -1,6 +1,6 @@
 {
   "name": "@reposell/sell",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vue sell page template for RepoSell — builds to a single self-contained HTML",
   "type": "module",
   "main": "./dist/index.js",
