@@ -7,37 +7,33 @@
       <p class="rs-subtitle">{{ description }}</p>
     </section>
 
-    <!-- GitHub Auth — exact same as listing detail -->
+    <!-- GitHub Auth — WorkOS AuthKit, same session as the listing -->
     <section class="rs-section">
       <div class="rs-card rs-gh-card">
         <h2 class="rs-gh-title">GitHub account</h2>
 
         <!-- Connected -->
-        <div v-if="ghConnected && ghUser" class="rs-gh-connected">
+        <div v-if="connected && authUser" class="rs-gh-connected">
           <span class="rs-gh-avatar">✓</span>
-          <span class="rs-gh-user">@{{ ghUser.login }}</span>
-          <button class="rs-gh-disconnect" @click="disconnectGithub">Disconnect</button>
+          <span class="rs-gh-user">@{{ displayName }}</span>
+          <button class="rs-gh-disconnect" @click="disconnect">Disconnect</button>
         </div>
 
-        <!-- Device code showing -->
-        <div v-else-if="ghState === 'device' || ghState === 'polling'" class="rs-gh-device">
-          <p class="rs-gh-instructions">
-            Enter this code on GitHub:
-            <strong class="rs-gh-code">{{ userCode }}</strong>
-          </p>
-          <p class="rs-gh-timer">{{ countdown }}s remaining</p>
+        <!-- Checking -->
+        <div v-else-if="authState === 'loading'" class="rs-gh-device">
+          <p class="rs-gh-hint">Checking your session…</p>
         </div>
 
         <!-- Error -->
-        <div v-else-if="ghState === 'error'" class="rs-gh-error-wrap">
-          <p class="rs-gh-error">{{ ghError }}</p>
-          <button class="rs-btn rs-btn--primary" @click="connectGithub">Try again</button>
+        <div v-else-if="authState === 'error'" class="rs-gh-error-wrap">
+          <p class="rs-gh-error">{{ authError }}</p>
+          <button class="rs-btn rs-btn--primary" @click="startLogin">Try again</button>
         </div>
 
         <!-- Idle -->
         <div v-else>
-          <p class="rs-gh-hint">Connect your GitHub account to buy and fork this repository.</p>
-          <button class="rs-btn rs-btn--primary" @click="connectGithub">Connect GitHub</button>
+          <p class="rs-gh-hint">Continue with GitHub to buy and fork this repository.</p>
+          <button class="rs-btn rs-btn--primary" @click="startLogin">Continue with GitHub</button>
         </div>
       </div>
     </section>
@@ -47,28 +43,29 @@
       <div class="rs-card rs-fork-card">
         <h2 class="rs-fork-title">✓ Payment confirmed</h2>
 
-        <div v-if="forkState === 'forking'" class="rs-gh-device">
-          <p class="rs-gh-instructions">Forking <strong>{{ owner }}/{{ repo }}</strong> to your GitHub...</p>
-        </div>
+        <p class="rs-gh-hint">
+          Your license is being recorded. Fork <strong>{{ owner }}/{{ repo }}</strong> to
+          your GitHub to claim the repository with the license you bought.
+        </p>
 
-        <div v-else-if="forkState === 'done'" class="rs-gh-connected">
-          <span class="rs-gh-avatar" style="background:#0af188">✓</span>
-          <span class="rs-gh-user">Fork created!</span>
-          <a :href="forkUrl" target="_blank" rel="noopener" class="rs-btn">Open forked repository ↗</a>
+        <div v-if="connected" class="rs-fork-actions">
+          <a
+            :href="forkUrl"
+            target="_blank"
+            rel="noopener"
+            class="rs-btn rs-btn--primary"
+          >
+            Fork {{ owner }}/{{ repo }} on GitHub ↗
+          </a>
         </div>
-
-        <div v-else-if="forkState === 'error'" class="rs-gh-error-wrap">
-          <p class="rs-gh-error">{{ forkError }}</p>
-          <button class="rs-btn rs-btn--primary" @click="forkRepo">Try again</button>
-        </div>
-
-        <div v-else-if="ghConnected">
-          <button class="rs-btn rs-btn--primary" @click="forkRepo">Fork {{ repo }} to your GitHub</button>
-        </div>
-
         <div v-else>
           <p class="rs-gh-hint">Connect your GitHub account above to fork after payment.</p>
         </div>
+
+        <p v-if="privateRepo" class="rs-fork-note">
+          This is a private repository — the seller grants you read access, then
+          the fork button above will create your private copy.
+        </p>
       </div>
     </section>
 
@@ -99,7 +96,7 @@
               </div>
               <div class="rs-release-side">
                 <span class="rs-price">{{ money(offer.price, offer.currency) }}</span>
-                <a v-if="ghConnected" class="rs-btn" :href="offer.paymentLink" rel="nofollow">Buy</a>
+                <a v-if="connected" class="rs-btn" :href="offer.paymentLink" rel="nofollow">Buy</a>
                 <span v-else class="rs-btn rs-btn--disabled">Buy</span>
               </div>
             </div>
@@ -128,10 +125,7 @@
 </template>
 
 <script>
-const GITHUB_CLIENT_ID = 'Iv23lidhennqrdpdFUAT'
-const CORS_PROXY = 'https://corsproxy.io/?url='
-const GH_TOKEN_KEY = 'rs-sell-gh-token'
-const GH_USER_KEY = 'rs-sell-gh-user'
+const DEFAULT_ACCESS_API = 'https://access.reposell.dev'
 
 export default {
   data() {
@@ -146,45 +140,40 @@ export default {
     const sid = new URLSearchParams(window.location.search).get('session_id')
 
     return {
+      accessApi: data.access?.api || DEFAULT_ACCESS_API,
       productName: data.productName || data.product?.name || 'Repository',
       description: data.description || data.product?.description || 'Buy directly from the source repository.',
       repository: repoSlug,
       owner: parts[0] || '',
       repo: parts[1] || '',
+      privateRepo: !!data.private,
       releases: data.releases || [],
       hasSessionId: !!sid,
-      ghState: 'idle',
-      ghError: '',
-      ghToken: '',
-      ghUser: null,
-      userCode: '',
-      countdown: 0,
-      pollTimer: null,
-      pollDeadline: 0,
-      forkState: 'idle',
-      forkError: '',
-      forkUrl: '',
+      authState: 'idle',
+      authError: '',
+      authUser: null,
     }
   },
 
   computed: {
-    ghConnected() { return this.ghState === 'connected' },
+    connected() { return this.authState === 'connected' },
     availableReleases() { return this.releases.filter(r => r.status === 'available') },
     blockedReleases() { return this.releases.filter(r => r.status !== 'available') },
+    displayName() {
+      if (!this.authUser) return ''
+      return this.authUser.github_login || this.authUser.email || ''
+    },
+    loginUrl() {
+      const redirect = window.location.origin + window.location.pathname
+      return `${this.accessApi}/api/auth/login?redirect_uri=${encodeURIComponent(redirect)}`
+    },
+    forkUrl() {
+      return `https://github.com/${this.owner}/${this.repo}/fork`
+    },
   },
 
   mounted() {
-    const token = sessionStorage.getItem(GH_TOKEN_KEY)
-    const user = sessionStorage.getItem(GH_USER_KEY)
-    if (token && user) {
-      this.ghToken = token
-      try { this.ghUser = JSON.parse(user); this.ghState = 'connected' } catch {}
-    }
-    if (this.hasSessionId && this.ghConnected) this.forkRepo()
-  },
-
-  beforeUnmount() {
-    if (this.pollTimer) clearInterval(this.pollTimer)
+    this.checkSession()
   },
 
   methods: {
@@ -193,127 +182,39 @@ export default {
       return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + currency
     },
 
-    proxyFetch(url, options) {
-      return fetch(CORS_PROXY + encodeURIComponent(url), options)
-    },
-
-    async connectGithub() {
-      this.ghState = 'device'
-      this.ghError = ''
+    async checkSession() {
+      this.authState = 'loading'
+      this.authError = ''
       try {
-        const res = await this.proxyFetch('https://github.com/login/device/code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ client_id: GITHUB_CLIENT_ID, scope: 'repo' }),
-        })
-        const data = await res.json()
-        if (data.error) {
-          this.ghState = 'error'
-          this.ghError = data.error_description || 'GitHub rejected the request — try again.'
-          return
+        const res = await fetch(`${this.accessApi}/api/auth/me`, { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          this.authUser = data.user
+          this.authState = 'connected'
+        } else {
+          this.authState = 'idle'
         }
-        this.userCode = data.user_code
-        window.open(data.verification_uri, '_blank', 'noopener')
-        this.startPolling(data.device_code, data.interval || 5, data.expires_in || 900)
       } catch {
-        this.ghState = 'error'
-        this.ghError = 'Could not reach GitHub — check your connection.'
+        this.authState = 'error'
+        this.authError = 'Could not reach the account service.'
       }
     },
 
-    startPolling(code, interval, expiresIn) {
-      this.countdown = expiresIn
-      this.pollDeadline = Date.now() + expiresIn * 1000
-      this.pollTimer = setInterval(() => {
-        this.countdown = Math.max(0, Math.ceil((this.pollDeadline - Date.now()) / 1000))
-        if (this.countdown <= 0) {
-          this.stopPolling()
-          this.ghState = 'error'
-          this.ghError = 'Device code expired — try again.'
-        }
-      }, 1000)
-      this.pollForToken(code, interval * 1000)
+    startLogin() {
+      window.location.href = this.loginUrl
     },
 
-    async pollForToken(code, intervalMs) {
-      if (Date.now() >= this.pollDeadline) {
-        this.stopPolling()
-        this.ghState = 'error'
-        this.ghError = 'Device code expired — try again.'
-        return
-      }
-      await new Promise(r => setTimeout(r, intervalMs))
+    async disconnect() {
+      this.authUser = null
+      this.authState = 'idle'
       try {
-        const res = await this.proxyFetch('https://github.com/login/oauth/access_token', {
+        const res = await fetch(`${this.accessApi}/api/auth/logout`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            client_id: GITHUB_CLIENT_ID,
-            device_code: code,
-            grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-          }),
+          credentials: 'include',
         })
-        const data = await res.json()
-        if (data.access_token) {
-          this.stopPolling()
-          this.ghToken = data.access_token
-          this.ghState = 'connected'
-          try {
-            const uRes = await fetch('https://api.github.com/user', {
-              headers: { Authorization: `Bearer ${data.access_token}` },
-            })
-            if (uRes.ok) {
-              this.ghUser = await uRes.json()
-              sessionStorage.setItem(GH_TOKEN_KEY, data.access_token)
-              sessionStorage.setItem(GH_USER_KEY, JSON.stringify(this.ghUser))
-            }
-          } catch {}
-          if (this.hasSessionId) this.forkRepo()
-          return
-        }
-        if (data.error === 'authorization_pending') { this.pollForToken(code, intervalMs); return }
-        if (data.error === 'slow_down') { this.pollForToken(code, intervalMs + 5000); return }
-        this.stopPolling()
-        this.ghState = 'error'
-        this.ghError = data.error_description || 'Authorization failed — try again.'
-      } catch {
-        this.pollForToken(code, intervalMs)
-      }
-    },
-
-    stopPolling() {
-      if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null }
-    },
-
-    disconnectGithub() {
-      this.stopPolling()
-      sessionStorage.removeItem(GH_TOKEN_KEY)
-      sessionStorage.removeItem(GH_USER_KEY)
-      this.ghToken = ''
-      this.ghUser = null
-      this.ghState = 'idle'
-    },
-
-    async forkRepo() {
-      if (!this.ghToken || !this.owner || !this.repo) return
-      this.forkState = 'forking'
-      this.forkError = ''
-      try {
-        const res = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/forks`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${this.ghToken}`, Accept: 'application/vnd.github+json' },
-        })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.message || `Fork failed: HTTP ${res.status}`)
-        }
-        const fork = await res.json()
-        this.forkState = 'done'
-        this.forkUrl = fork.html_url
-      } catch (e) {
-        this.forkState = 'error'
-        this.forkError = e.message || 'Fork failed'
-      }
+        const data = await res.json().catch(() => ({}))
+        if (data.logout_url) window.location.href = data.logout_url
+      } catch {}
     },
   },
 }
@@ -441,6 +342,8 @@ body {
 /* Fork section */
 .rs-fork-card { border: 2px solid var(--ok); }
 .rs-fork-title { font-size: 1.1rem; font-weight: 600; margin-bottom: .8rem; border: none; padding: 0; color: var(--ok); }
+.rs-fork-actions { margin: .8rem 0 0; }
+.rs-fork-note { margin-top: .8rem; font-size: .85rem; color: var(--lx-text-2); border-left: 3px solid var(--ok); padding-left: .8rem; }
 
 footer.rs-footer { border-top: 1px solid var(--lx-line); padding: 1.6rem 0; color: var(--lx-text-3); font-size: .88rem; }
 </style>
